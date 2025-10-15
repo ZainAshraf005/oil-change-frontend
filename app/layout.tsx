@@ -19,9 +19,9 @@ const geist_Mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "v0 App",
-  description: "Created with v0",
-  generator: "v0.app",
+  title: "On Time Oil",
+  description: "The Best Oil Shop in the town.",
+  generator: "developerz",
 };
 
 export default function RootLayout({
