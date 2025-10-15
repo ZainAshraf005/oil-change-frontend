@@ -80,7 +80,7 @@ export default function ShopsPage() {
                       </Button>
                       <ShopDelete
                         shopName={shop.name}
-                        shopId={shop.id}
+                        shopId={shop.id as string}
                         fetchShops={fetchShops}
                       />
                     </div>
