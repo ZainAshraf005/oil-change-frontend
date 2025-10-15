@@ -113,7 +113,7 @@ export default function PackagesPage() {
                 <div className="flex gap-2">
                   <PackageEdit
                     packageName={pkg.name}
-                    packageId={pkg.id!}
+                    packageId={pkg.id as string}
                     fetchPackages={fetchPackages}
                     email_enabled={pkg.email_enabled}
                     sms_enabled={pkg.sms_enabled}
@@ -124,7 +124,7 @@ export default function PackagesPage() {
                   />
                   <PackageDelete
                     packageName={pkg.name}
-                    packageId={pkg.id}
+                    packageId={pkg.id as string}
                     fetchPackages={fetchPackages}
                   />
                 </div>
