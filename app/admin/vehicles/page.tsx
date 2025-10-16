@@ -1,18 +1,24 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { formatReg } from "@/lib/helpers/reg-normalizer"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { formatReg } from "@/lib/helpers/reg-normalizer";
 
 export default function VehiclesPage() {
-  const example = formatReg("abc 123")
+  const example = formatReg("abc 123");
   return (
     <section className="grid gap-6 md:grid-cols-2">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Vehicles</h1>
-          <Button>Add Vehicle</Button>
         </div>
         <div className="rounded-lg border">
           <Table>
@@ -72,5 +78,5 @@ export default function VehiclesPage() {
         </CardContent>
       </Card>
     </section>
-  )
+  );
 }

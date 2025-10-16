@@ -38,8 +38,8 @@ const superAdminNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/products", label: "Products" },
-  { href: "/admin/vehicles", label: "Vehicles" },
   { href: "/admin/customers", label: "Customers" },
+  { href: "/admin/vehicles", label: "Vehicles" },
   { href: "/admin/sales", label: "Sales" },
   { href: "/admin/reminders", label: "Reminders" },
   { href: "/admin/settings", label: "Settings" },

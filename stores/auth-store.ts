@@ -10,7 +10,7 @@ type AuthUser = {
   name: string;
   email: string;
   role: UserRole;
-  shopId?: string | null;
+  shop_id?: string | null;
 };
 
 type AuthState = {

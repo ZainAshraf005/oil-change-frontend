@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Interface } from "readline";
 
 // Basic API helpers
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -113,8 +114,91 @@ export async function getDashboardStats() {
   });
   return res.data;
 }
+// ---------------------- Product ----------------------
+export async function getAllProducts(id: string) {
+  const res = await axios.get(`${API_BASE_URL}/product/all/${id}`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+export async function getProductById(id: string) {
+  const res = await axios.get(`${API_BASE_URL}/product/${id}`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+export async function createProduct(payload: CreateProductReq) {
+  const res = await axios.post(`${API_BASE_URL}/product/create`, payload, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+export async function updateProduct(payload: CreateProductReq, id: string) {
+  const res = await axios.put(`${API_BASE_URL}/product/update/${id}`, payload, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+export async function deleteProduct(id: string) {
+  const res = await axios.delete(`${API_BASE_URL}/product/delete/${id}`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+// ---------------------- Customer ----------------------
+
+export async function getAllCustomers(id: string) {
+  const res = await axios.get(`${API_BASE_URL}/customer/all/${id}`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+export async function getCustomerById(id: string) {
+  const res = await axios.get(`${API_BASE_URL}/customer/${id}`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+export async function createCustomer(payload: CreateCustomerReq) {
+  const res = await axios.post(`${API_BASE_URL}/customer/create`, payload, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+
+export async function updateCustomer(payload: CreateCustomerReq, id: string) {
+  const res = await axios.put(
+    `${API_BASE_URL}/customer/update/${id}`,
+    payload,
+    {
+      withCredentials: true,
+    }
+  );
+  return res.data;
+}
+export async function deleteCustomer(id: string) {
+  const res = await axios.delete(`${API_BASE_URL}/customer/delete/${id}`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
 
 // ---------------------- API CALLING END ----------------------
+
+export interface CreateCustomerReq {
+  shop_id?: string | number;
+  name: string;
+  email: string;
+  phone: string;
+  whatsapp: string;
+}
+export interface CreateProductReq {
+  shop_id?: string | number;
+  name: string;
+  price_per_litre: number;
+  stock_litres: number;
+  low_stock_threshold: number;
+}
 
 export interface DashboardStats {
   totalShops: number;
@@ -176,18 +260,21 @@ export type PackageAssignment = {
 
 // Admin
 export type Product = {
-  id: string;
-  sku: string;
+  id?: string | number;
+  shop_id: string | number;
   name: string;
-  unit: "L" | "ML";
-  pricePerUnit: number; // price per unit (matches 'unit')
-  createdAt: string;
+  price_per_litre: number;
+  stock_litres: number;
+  low_stock_threshold: number;
+  created_at: string;
+  shop?: Shop;
 };
 
 export type Customer = {
   id: string;
   name: string;
   phone?: string;
+  whatsapp?:string;
   email?: string;
   createdAt: string;
 };
@@ -272,25 +359,6 @@ export type AdminSettings = {
  */
 const now = new Date();
 const iso = (d: Date) => d.toISOString();
-
-export const DUMMY_PRODUCTS: Product[] = [
-  {
-    id: "p_10w40",
-    sku: "10W40-1L",
-    name: "10W-40 Mineral 1L",
-    unit: "L",
-    pricePerUnit: 3.0,
-    createdAt: iso(now),
-  },
-  {
-    id: "p_5w30",
-    sku: "5W30-1L",
-    name: "5W-30 Synthetic 1L",
-    unit: "L",
-    pricePerUnit: 4.8,
-    createdAt: iso(now),
-  },
-];
 
 export const DUMMY_CUSTOMERS: Customer[] = [
   {
