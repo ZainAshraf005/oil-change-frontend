@@ -19,6 +19,7 @@ import { deleteSale, getAllSales, Sale } from "@/lib/api";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
+import { Spinner } from "@/components/ui/spinner";
 
 type DateFilter = "today" | "7days" | "30days" | "all";
 
@@ -28,6 +29,7 @@ export default function SalesPage() {
   const [filter, setFilter] = useState<DateFilter>("all");
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true); // 🟡 loading state
+  const [loadingId, setLoadingId] = useState(0);
   const user = useAuthStore((s) => s.user);
   const shop_id = user!.shop?.id as string;
 
@@ -35,6 +37,7 @@ export default function SalesPage() {
     try {
       setLoading(true);
       const res = await getAllSales(shop_id);
+      console.log(res);
       setSales(res.data || res);
     } catch (error) {
       console.error("Failed to fetch sales:", error);
@@ -45,12 +48,15 @@ export default function SalesPage() {
 
   const handleSaleDelete = async (id: string) => {
     try {
+      setLoadingId(Number(id));
       const res = await deleteSale(id);
       setSales((prev) => prev.filter((s) => s.id !== id));
       toast.success(res.message || "sale removed");
     } catch (error) {
       if (error instanceof AxiosError)
         toast.error(error.response?.data.message || "error removing sale");
+    } finally {
+      setLoadingId(0);
     }
   };
 
@@ -229,7 +235,7 @@ export default function SalesPage() {
                             className="bg-transparent text-black cursor-pointer hover:bg-red-200 hover:text-red-700"
                             size={"icon-sm"}
                           >
-                            <Trash2 />
+                            {loadingId === sale.id ? <Spinner /> : <Trash2 />}
                           </Button>
                         </TableCell>
                       </TableRow>

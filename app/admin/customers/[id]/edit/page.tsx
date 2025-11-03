@@ -5,7 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import { getCustomerById, updateCustomer } from "@/lib/api";
@@ -51,9 +57,35 @@ export default function EditCustomerPage() {
 
   // ✅ Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    // Special handling for phone & WhatsApp
+    if (name === "phone" || name === "whatsapp") {
+      let newValue = value.replace(/[^\d+]/g, ""); // only + and digits
+
+      // If starts with 0 → convert to +92
+      if (newValue.startsWith("0")) {
+        newValue = "+92" + newValue.slice(1);
+      }
+
+      // Ensure starts with +92
+      if (!newValue.startsWith("+92")) {
+        newValue = "+92";
+      }
+
+      // Limit total length to 13 characters (+92 + 10 digits)
+      if (newValue.length > 13) {
+        newValue = newValue.slice(0, 13);
+      }
+
+      setFormData((prev) => ({ ...prev, [name]: newValue }));
+      return;
+    }
+
+    // Normal fields
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }));
   };
 
@@ -91,7 +123,7 @@ export default function EditCustomerPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center bg-muted/20 py-10 px-4">
-      <Card className="w-full max-w-lg border border-border/50 shadow-lg bg-card/70 backdrop-blur-sm">
+      <Card className="w-full max-w-3xl border border-border/50 shadow-lg bg-card/70 backdrop-blur-sm">
         <CardHeader className="border-b pb-4">
           <CardTitle className="text-xl font-semibold text-foreground flex justify-between items-center">
             Edit Customer
@@ -108,7 +140,7 @@ export default function EditCustomerPage() {
         </CardHeader>
 
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-6">
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -141,7 +173,8 @@ export default function EditCustomerPage() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="0300-1234567"
+                placeholder="+923001234567"
+                maxLength={13}
               />
             </div>
 
@@ -152,17 +185,20 @@ export default function EditCustomerPage() {
                 name="whatsapp"
                 value={formData.whatsapp}
                 onChange={handleChange}
-                placeholder="0300-1234567"
+                placeholder="+923001234567"
+                maxLength={13}
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={updating}
-              className="w-full mt-2 text-base font-medium"
-            >
-              {updating ? "Updating..." : "Update Customer"}
-            </Button>
+            <div className="col-span-2">
+              <Button
+                type="submit"
+                disabled={updating}
+                className="w-full mt-4 text-base font-medium"
+              >
+                {updating ? "Updating..." : "Update Customer"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

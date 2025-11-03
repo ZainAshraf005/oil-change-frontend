@@ -21,11 +21,17 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState, useMemo } from "react";
 import { computePrice, normalizeToLiters } from "@/lib/helpers/unit-conversion";
 import { useAuthStore } from "@/stores/auth-store";
-import { createProduct, getAllProducts, Product } from "@/lib/api";
+import {
+  createProduct,
+  getAdminDashboardStats,
+  getAllProducts,
+  type Product,
+} from "@/lib/api";
 import { toast } from "sonner";
 import { AxiosError } from "axios";
 import ProductDelete from "@/components/product/product-delete";
 import ProductEdit from "@/components/product/product-edit";
+import { useDashboardStore } from "@/stores/dashboard-store";
 
 type IFilter = "ALL" | "LOW_STOCK" | "PRICE_ASC" | "PRICE_DESC";
 
@@ -38,6 +44,7 @@ export default function ProductsPage() {
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   // 🔍 Search + Filter state
   const [search, setSearch] = useState("");
@@ -45,6 +52,7 @@ export default function ProductsPage() {
 
   const total = computePrice(normalizeToLiters(quantity, unit), pricePerLiter);
   const user = useAuthStore((s) => s.user);
+  const { setData } = useDashboardStore();
 
   // 🟢 Fetch all products
   const fetchProducts = async () => {
@@ -56,12 +64,23 @@ export default function ProductsPage() {
       toast.error("Failed to fetch products");
     } finally {
       setLoading(false);
+      fetchDashboard();
     }
+  };
+
+  const fetchDashboard = async () => {
+    const res = await getAdminDashboardStats(user?.shop?.id as string);
+    setData(res.data);
   };
 
   useEffect(() => {
     fetchProducts();
-  }, [fetchProducts]);
+  }, []);
+
+  const handleNumberChange = (value: string, setter: (num: number) => void) => {
+    const cleaned = value.replace(/^0+/, ""); // remove all leading zeros
+    setter(cleaned === "" ? 0 : Number(cleaned));
+  };
 
   // 🟢 Handle create product
   const handleCreateProduct = async () => {
@@ -76,6 +95,7 @@ export default function ProductsPage() {
     };
 
     try {
+      setCreating(true);
       const data = await createProduct(productData);
       toast.success(data.message || "Product created successfully");
       await fetchProducts();
@@ -85,9 +105,12 @@ export default function ProductsPage() {
       setUnit("L");
       setLowStockThreshold(0);
       setOpen(false);
+      fetchDashboard();
     } catch (error) {
       if (error instanceof AxiosError)
         toast.error(error.response?.data.message || "Error creating product");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -95,14 +118,12 @@ export default function ProductsPage() {
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
-    // Search by name
     if (search.trim()) {
       list = list.filter((p) =>
         p.name.toLowerCase().includes(search.trim().toLowerCase())
       );
     }
 
-    // Apply filters
     switch (filter) {
       case "LOW_STOCK":
         list = list.filter((p) => p.stock_litres < p.low_stock_threshold);
@@ -132,6 +153,7 @@ export default function ProductsPage() {
               <DialogTitle>Add Product</DialogTitle>
             </DialogHeader>
             <div className="grid gap-3">
+              {/* Name */}
               <div className="grid gap-2">
                 <Label>Name</Label>
                 <Input
@@ -141,22 +163,28 @@ export default function ProductsPage() {
                 />
               </div>
 
+              {/* Price per Liter */}
               <div className="grid gap-2">
                 <Label>Price per Liter</Label>
                 <Input
                   type="number"
                   value={pricePerLiter}
-                  onChange={(e) => setPricePerLiter(+e.target.value)}
+                  onChange={(e) =>
+                    handleNumberChange(e.target.value, setPricePerLiter)
+                  }
                 />
               </div>
 
+              {/* Quantity + Unit */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label>Quantity</Label>
                   <Input
                     type="number"
                     value={quantity}
-                    onChange={(e) => setQuantity(+e.target.value)}
+                    onChange={(e) =>
+                      handleNumberChange(e.target.value, setQuantity)
+                    }
                   />
                 </div>
                 <div>
@@ -172,26 +200,33 @@ export default function ProductsPage() {
                 </div>
               </div>
 
+              {/* Low Stock Threshold */}
               <div className="grid gap-2">
                 <Label>Low Stock Threshold (Liters)</Label>
                 <Input
                   type="number"
                   value={lowStockThreshold}
-                  onChange={(e) => setLowStockThreshold(+e.target.value)}
+                  onChange={(e) =>
+                    handleNumberChange(e.target.value, setLowStockThreshold)
+                  }
                   placeholder="e.g. 5"
                 />
               </div>
 
+              {/* Auto price calculation */}
               <div className="rounded-md border p-2 text-sm">
                 Auto price calculation example:{" "}
                 {isFinite(total) ? total.toFixed(2) : "—"}
               </div>
 
+              {/* Action buttons */}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreateProduct}>Save</Button>
+                <Button onClick={handleCreateProduct} disabled={creating}>
+                  {creating ? "Creating..." : "Save"}
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -232,7 +267,6 @@ export default function ProductsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              // 🔄 Skeleton rows while loading
               <>
                 {[...Array(3)].map((_, i) => (
                   <TableRow key={i}>

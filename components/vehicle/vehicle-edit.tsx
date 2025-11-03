@@ -101,7 +101,7 @@ export default function VehicleEdit({
 
   // 🔹 Handle update
   const handleUpdate = async () => {
-    const regPattern = /^[A-Z]{2,}-\d{1,4}$|^[A-Z]{2,}-\d{2}-\d{1,4}$/;
+    const regPattern = /^[A-Z]{2,}-\d{1,3}[A-Z]?-?\d{1,4}$/;
     if (!regPattern.test(regNumber)) {
       toast.error("Please enter a valid registration number");
       return;

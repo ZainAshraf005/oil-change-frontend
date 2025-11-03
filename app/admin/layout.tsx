@@ -20,5 +20,5 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (!user || user.role !== "ADMIN") return null;
 
-  return <AppShell role="ADMIN">{children}</AppShell>;
+  return <AppShell role="ADMIN" >{children}</AppShell>;
 }

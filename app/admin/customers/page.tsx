@@ -17,6 +17,7 @@ import {
   type CreateCustomerReq,
   getAllCustomers,
   type Customer,
+  getAdminDashboardStats,
 } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
@@ -24,18 +25,13 @@ import { useState, useEffect } from "react";
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Plus,
-  Search,
-  Users,
-  Phone,
-  MessageCircle,
-  Mail,
-  ChevronRight,
-} from "lucide-react";
+import { Plus, Search, Users } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useDashboardStore } from "@/stores/dashboard-store";
 
 export default function CustomersPage() {
   const user = useAuthStore((s) => s.user);
+  const { setData } = useDashboardStore();
   const router = useRouter();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -48,6 +44,7 @@ export default function CustomersPage() {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
+  const [sameAsPhone, setSameAsPhone] = useState(true);
 
   // 🟢 Fetch customers
   const fetchCustomers = async () => {
@@ -66,13 +63,46 @@ export default function CustomersPage() {
     if (user?.shop?.id) fetchCustomers();
   }, [user?.shop?.id]);
 
-  // 🟢 Filter customers based on search
+  // 🟢 Filter customers
   const filteredCustomers = customers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer?.phone?.includes(searchTerm) ||
-      customer.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.phone?.includes(searchTerm) ||
+      c.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // 🟢 Enforce +92 formatting and limit to 13 chars
+  const formatPhone = (val: string) => {
+    let clean = val.replace(/\D/g, ""); // digits only
+
+    // remove leading 0 if present
+    if (clean.startsWith("0")) clean = clean.substring(1);
+
+    // add +92 if not there
+    if (!clean.startsWith("92")) clean = "92" + clean;
+
+    // limit total length to "+92" + 10 digits → 13 characters total
+    clean = clean.slice(0, 12); // "92" + 10 digits = 12 numeric chars
+
+    return "+" + clean;
+  };
+
+  // 🟢 Handle phone changes
+  const handlePhoneChange = (val: string) => {
+    const formatted = formatPhone(val);
+    setPhone(formatted);
+    if (sameAsPhone) setWhatsapp(formatted);
+  };
+
+  const handleWhatsappChange = (val: string) => {
+    const formatted = formatPhone(val);
+    setWhatsapp(formatted);
+  };
+
+  const fetchDashboard = async () => {
+    const res = await getAdminDashboardStats(user?.shop?.id as string);
+    setData(res.data);
+  };
 
   // 🟢 Create new customer
   const handleCreateCustomer = async () => {
@@ -85,7 +115,7 @@ export default function CustomersPage() {
       shop_id: user!.shop?.id as string,
       name,
       phone,
-      whatsapp: whatsapp || phone,
+      whatsapp: sameAsPhone ? phone : whatsapp,
       email,
     };
 
@@ -98,6 +128,7 @@ export default function CustomersPage() {
       setPhone("");
       setWhatsapp("");
       setEmail("");
+      setSameAsPhone(true);
     } catch (error) {
       if (error instanceof AxiosError)
         toast.error(
@@ -106,6 +137,7 @@ export default function CustomersPage() {
       else toast.error("Unexpected error");
     } finally {
       setSaving(false);
+      fetchDashboard();
     }
   };
 
@@ -114,6 +146,7 @@ export default function CustomersPage() {
     setPhone("");
     setWhatsapp("");
     setEmail("");
+    setSameAsPhone(true);
   };
 
   return (
@@ -147,14 +180,13 @@ export default function CustomersPage() {
 
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Customers List - Left Side */}
+          {/* Customers List */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Desktop Table View */}
             <Card className="border-0 shadow-sm hidden md:block">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-b hover:bg-transparent">
+                    <TableRow>
                       <TableHead className="font-semibold">Name</TableHead>
                       <TableHead className="font-semibold">Phone</TableHead>
                       <TableHead className="font-semibold hidden lg:table-cell">
@@ -223,68 +255,12 @@ export default function CustomersPage() {
                 </Table>
               </div>
             </Card>
-
-            {/* Mobile Card View */}
-            <div className="md:hidden space-y-3  max-h-96 overflow-y-auto">
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <Card key={i} className="border-0 shadow-sm p-4">
-                    <Skeleton className="h-12 w-full" />
-                  </Card>
-                ))
-              ) : filteredCustomers.length > 0 ? (
-                filteredCustomers.map((c) => (
-                  <Card
-                    key={c.id}
-                    className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => router.push(`customers/${c.id}`)}
-                  >
-                    <div className="px-4 flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-base capitalize truncate">
-                          {c.name}
-                        </h3>
-                        <div className="space-y-1 mt-2">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="w-3 h-3 shrink-0" />
-                            <span className="font-mono">{c.phone}</span>
-                          </div>
-                          {c.whatsapp && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <MessageCircle className="w-3 h-3 shrink-0" />
-                              <span className="font-mono">{c.whatsapp}</span>
-                            </div>
-                          )}
-                          {c.email && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Mail className="w-3 h-3 shrink-0" />
-                              <span className="truncate text-xs">
-                                {c.email}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                <Card className="border-0 shadow-sm p-8 text-center">
-                  <p className="text-muted-foreground">
-                    {searchTerm
-                      ? "No customers found."
-                      : "No customers yet. Add one using the form."}
-                  </p>
-                </Card>
-              )}
-            </div>
           </div>
 
-          {/* Add Customer Form - Right Side */}
+          {/* Add Customer Form */}
           <div className="lg:col-span-1">
             <Card className="border-0 shadow-sm lg:sticky lg:top-4 h-fit">
-              <CardHeader className="pb-3 sm:pb-4">
+              <CardHeader>
                 <div className="flex items-center gap-2">
                   <Plus className="w-5 h-5 text-primary" />
                   <CardTitle className="text-base sm:text-lg">
@@ -296,84 +272,77 @@ export default function CustomersPage() {
                 </p>
               </CardHeader>
               <CardContent className="grid gap-4">
+                {/* Name */}
                 <div className="grid gap-2">
-                  <Label htmlFor="name" className="text-xs sm:text-sm">
-                    Name
-                  </Label>
+                  <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Customer name"
-                    className="text-sm"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Phone */}
+                <div className="grid gap-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    placeholder="+923001234567"
+                  />
+                </div>
+
+                {/* Toggle */}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs sm:text-sm flex items-center gap-2">
+                    Keep WhatsApp same as phone
+                  </Label>
+                  <Switch
+                    checked={sameAsPhone}
+                    onCheckedChange={setSameAsPhone}
+                  />
+                </div>
+
+                {/* WhatsApp */}
+                {!sameAsPhone && (
                   <div className="grid gap-2">
-                    <Label
-                      htmlFor="phone"
-                      className="text-xs sm:text-sm flex items-center gap-1"
-                    >
-                      <Phone className="w-3 h-3" />
-                      <span>Phone</span>
-                    </Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+92..."
-                      className="text-sm"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label
-                      htmlFor="whatsapp"
-                      className="text-xs sm:text-sm flex items-center gap-1"
-                    >
-                      <MessageCircle className="w-3 h-3" />
-                      <span>WhatsApp</span>
-                    </Label>
+                    <Label htmlFor="whatsapp">WhatsApp</Label>
                     <Input
                       id="whatsapp"
                       value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="+92..."
-                      className="text-sm"
+                      onChange={(e) => handleWhatsappChange(e.target.value)}
+                      placeholder="+923001234567"
                     />
                   </div>
-                </div>
+                )}
 
+                {/* Email */}
                 <div className="grid gap-2">
-                  <Label
-                    htmlFor="email"
-                    className="text-xs sm:text-sm flex items-center gap-1"
-                  >
-                    <Mail className="w-3 h-3" />
-                    <span>Email</span>
-                  </Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="text-sm"
                   />
                 </div>
 
+                {/* Buttons */}
                 <div className="flex flex-col sm:flex-row gap-2 pt-2">
                   <Button
                     onClick={handleCreateCustomer}
                     disabled={saving || !name.trim() || !phone.trim()}
-                    className="flex-1 text-sm"
+                    className="flex-1"
                   >
                     {saving ? "Saving..." : "Save Customer"}
                   </Button>
                   <Button
                     onClick={handleReset}
                     variant="outline"
-                    className="flex-1 bg-transparent text-sm"
+                    className="flex-1"
                   >
                     Clear
                   </Button>

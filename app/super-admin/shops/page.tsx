@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
-import { getShops } from "@/lib/api";
+import { getShops, getSuperAdminStats } from "@/lib/api";
 import type { Shop } from "@/lib/api";
 import Link from "next/link";
 import ShopDelete from "@/components/shop/shop-delete";
@@ -19,11 +19,18 @@ import { Card } from "@/components/ui/card";
 import { Plus, Store, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TableSkeleton } from "@/components/skeletons/table-skeleton";
+import { useSuperDashboardStore } from "@/stores/super-dashboard-store";
 
 export default function ShopsPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const { setData } = useSuperDashboardStore();
   const router = useRouter();
+
+  const fetchSuperAdmin = async () => {
+    const res = await getSuperAdminStats();
+    setData(res.data);
+  };
 
   const fetchShops = async () => {
     try {
@@ -34,6 +41,7 @@ export default function ShopsPage() {
       console.error("Failed to fetch shops:", err);
     } finally {
       setLoading(false);
+      fetchSuperAdmin();
     }
   };
 
@@ -110,7 +118,13 @@ export default function ShopsPage() {
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
                         {shop.package_assignment?.package?.name ? (
-                          <Badge  variant={`${shop.status==="ACTIVE"?"secondary":"destructive"}`}>
+                          <Badge
+                            variant={`${
+                              shop.status === "ACTIVE"
+                                ? "secondary"
+                                : "destructive"
+                            }`}
+                          >
                             {shop.package_assignment.package.name}
                           </Badge>
                         ) : (

@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getAdminDashboardStats } from "@/lib/api";
+import { useDashboardStore } from "@/stores/dashboard-store";
 
 interface DashboardStats {
   package: {
@@ -68,39 +69,44 @@ interface DashboardStats {
 export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const user = useAuthStore((s) => s.user);
+  const { setData } = useDashboardStore();
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await getAdminDashboardStats(user?.shop?.id as string);
-        setDashboardStats(res);
+        setDashboardStats(res.data);
+        setData(res.data);
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, [user?.shop?.id]);
+  }, []);
 
   if (isLoading || !dashboardStats) return <DashboardSkeleton />;
 
   const whatsappRemaining =
-    dashboardStats.channels.whatsapp.limit -
-    dashboardStats.channels.whatsapp.used;
+    dashboardStats.channels?.whatsapp.limit -
+    dashboardStats!.channels?.whatsapp.used;
   const smsRemaining =
-    dashboardStats.channels.sms.limit - dashboardStats.channels.sms.used;
+    dashboardStats!.channels?.sms?.limit - dashboardStats!.channels?.sms?.used;
   const emailRemaining =
-    dashboardStats.channels.email.limit - dashboardStats.channels.email.used;
+    dashboardStats!.channels?.email?.limit -
+    dashboardStats?.channels?.email?.used;
 
   const whatsappPercent =
-    (dashboardStats.channels.whatsapp.used /
-      dashboardStats.channels.whatsapp.limit) *
+    (dashboardStats!.channels?.whatsapp?.used /
+      dashboardStats!.channels?.whatsapp?.limit) *
     100;
   const smsPercent =
-    (dashboardStats.channels.sms.used / dashboardStats.channels.sms.limit) *
+    (dashboardStats?.channels?.sms?.used /
+      dashboardStats?.channels?.sms?.limit) *
     100;
   const emailPercent =
-    (dashboardStats.channels.email.used / dashboardStats.channels.email.limit) *
+    (dashboardStats?.channels?.email?.used /
+      dashboardStats?.channels?.email?.limit) *
     100;
 
   return (
@@ -131,10 +137,10 @@ export default function AdminDashboard() {
               </div>
               <div className="text-left sm:text-right">
                 <p className="text-lg sm:text-2xl font-bold text-primary">
-                  {dashboardStats.package.name}
+                  {dashboardStats?.package?.name}
                 </p>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Tier: {dashboardStats.package.tier}
+                  Tier: {dashboardStats?.package?.tier}
                 </p>
               </div>
             </div>
@@ -145,26 +151,26 @@ export default function AdminDashboard() {
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Messages Today"
-            value={dashboardStats.stats.messagesToday.toLocaleString()}
+            value={dashboardStats?.stats?.messagesToday?.toLocaleString()}
             icon={MessageSquare}
             trend="+12%"
           />
           <StatCard
             title="Total Sales"
             smValue="PKR"
-            value={`${dashboardStats.stats.totalSales.toLocaleString()}`}
+            value={`${dashboardStats?.stats?.totalSales?.toLocaleString()}`}
             icon={TrendingUp}
             trend="+8%"
           />
           <StatCard
             title="Total Products"
-            value={dashboardStats.stats.totalProducts}
+            value={dashboardStats?.stats?.totalProducts}
             icon={Package}
             trend="+5"
           />
           <StatCard
             title="Total Customers"
-            value={dashboardStats.stats.totalCustomers}
+            value={dashboardStats?.stats?.totalCustomers}
             icon={Users}
             trend="+24"
           />
@@ -173,25 +179,25 @@ export default function AdminDashboard() {
         {/* Channel Limits */}
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <ChannelCard
-            name={dashboardStats.channels.whatsapp.name}
-            used={dashboardStats.channels.whatsapp.used}
-            limit={dashboardStats.channels.whatsapp.limit}
+            name={dashboardStats?.channels?.whatsapp.name}
+            used={dashboardStats?.channels?.whatsapp.used}
+            limit={dashboardStats?.channels?.whatsapp.limit}
             remaining={whatsappRemaining}
             percent={whatsappPercent}
             icon={MessageSquare}
           />
           <ChannelCard
-            name={dashboardStats.channels.sms.name}
-            used={dashboardStats.channels.sms.used}
-            limit={dashboardStats.channels.sms.limit}
+            name={dashboardStats?.channels?.sms.name}
+            used={dashboardStats?.channels?.sms.used}
+            limit={dashboardStats?.channels?.sms.limit}
             remaining={smsRemaining}
             percent={smsPercent}
             icon={Phone}
           />
           <ChannelCard
-            name={dashboardStats.channels.email.name}
-            used={dashboardStats.channels.email.used}
-            limit={dashboardStats.channels.email.limit}
+            name={dashboardStats?.channels?.email?.name}
+            used={dashboardStats?.channels?.email?.used}
+            limit={dashboardStats?.channels?.email?.limit}
             remaining={emailRemaining}
             percent={emailPercent}
             icon={Mail}
@@ -223,7 +229,7 @@ export default function AdminDashboard() {
                   className="h-full w-full"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dashboardStats.messagesTrend}>
+                    <BarChart data={dashboardStats?.messagesTrend}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" fontSize={12} />
                       <YAxis fontSize={12} />
@@ -273,7 +279,7 @@ export default function AdminDashboard() {
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <Pie
-                        data={dashboardStats.channelDistribution}
+                        data={dashboardStats?.channelDistribution}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -282,7 +288,7 @@ export default function AdminDashboard() {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {dashboardStats.channelDistribution.map(
+                        {dashboardStats?.channelDistribution?.map(
                           (entry, index) => (
                             <Cell key={index} fill={entry.color} />
                           )
@@ -312,7 +318,13 @@ interface IStatCard {
   smValue?: string;
 }
 
-function StatCard({ title, value, icon: Icon, trend, smValue }: IStatCard) {
+export function StatCard({
+  title,
+  value,
+  icon: Icon,
+  trend,
+  smValue,
+}: IStatCard) {
   return (
     <Card className="transition-all hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between pb-1">
@@ -343,7 +355,7 @@ interface IChannelCard {
   icon: usedIcon;
 }
 
-function ChannelCard({
+export function ChannelCard({
   name,
   used,
   limit,
@@ -368,8 +380,8 @@ function ChannelCard({
         <div className="space-y-2">
           <Progress value={Number(percent)} className="h-2" />
           <div className="flex justify-between text-[10px] sm:text-xs text-muted-foreground">
-            <span>Used: {used.toLocaleString()}</span>
-            <span>Limit: {limit.toLocaleString()}</span>
+            <span>Used: {used?.toLocaleString()}</span>
+            <span>Limit: {limit?.toLocaleString()}</span>
           </div>
         </div>
         <div className="rounded-md bg-muted p-2 sm:p-3 text-center sm:text-left">

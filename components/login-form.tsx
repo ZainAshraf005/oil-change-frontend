@@ -3,6 +3,7 @@
 import type React from "react";
 
 import { useState, useEffect } from "react";
+import oilLogo from "@/public/on-time-oil.png";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,9 @@ import { login } from "@/lib/api";
 import { AxiosError } from "axios";
 import { useAuthStore } from "@/stores/auth-store";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useDashboardStore } from "@/stores/dashboard-store";
+import { useSuperDashboardStore } from "@/stores/super-dashboard-store";
 
 export function LoginForm({
   className,
@@ -31,6 +35,8 @@ export function LoginForm({
   const [successLoading, setSuccessLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
   const setUser = useAuthStore((s) => s.login);
+  const { setData } = useDashboardStore();
+  const setSuperData = useSuperDashboardStore((s) => s.setData);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,6 +57,8 @@ export function LoginForm({
       setUser(res.user);
       setUserRole(res.user.role);
       setSuccessLoading(true);
+      if (res.dashboard) setData(res.dashboard);
+      if (res.super_dashboard) setSuperData(res.super_dashboard);
     } catch (err) {
       if (err instanceof AxiosError && err.response)
         toast.error(err.response.data.message || "Login failed");
@@ -67,7 +75,7 @@ export function LoginForm({
             <div className="hidden md:flex flex-col justify-between bg-linear-to-br from-primary/5 to-primary/10 p-8 md:p-12">
               <div className="space-y-6">
                 <div className="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center border-2 border-primary/30">
-                  <span className="text-2xl font-bold text-primary">OTO</span>
+                  <Image src={oilLogo} alt="logo" width={100} height={100} />
                 </div>
 
                 <div className="space-y-4">
@@ -169,8 +177,8 @@ export function LoginForm({
             <div className="hidden md:flex flex-col justify-between bg-linear-to-br from-primary/5 to-primary/10 p-8 md:p-12">
               <div className="space-y-6">
                 {/* Logo Placeholder */}
-                <div className="w-16 h-16 bg-primary/20 rounded-lg flex items-center justify-center border-2 border-primary/30">
-                  <span className="text-2xl font-bold text-primary">OTO</span>
+                <div className="w-16 h-16 bg-primary/20 rounded-lg overflow-hidden flex items-center justify-center border-2 border-primary/30">
+                  <Image src={oilLogo} alt="logo" width={100} height={100} />
                 </div>
 
                 {/* Company Info */}
@@ -229,7 +237,7 @@ export function LoginForm({
                   <Input
                     id="email"
                     type="email"
-                    placeholder="m@example.com"
+                    placeholder="john@doe.com"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -241,6 +249,7 @@ export function LoginForm({
                   <Input
                     id="password"
                     type="password"
+                    placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -252,8 +261,6 @@ export function LoginForm({
                     {loading ? "Logging in..." : "Login"}
                   </Button>
                 </Field>
-
-                <FieldSeparator>Or continue with</FieldSeparator>
               </FieldGroup>
             </form>
           </CardContent>

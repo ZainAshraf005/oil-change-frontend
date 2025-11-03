@@ -15,6 +15,13 @@ export async function login(email: string, password: string) {
   return res.data;
 }
 
+export async function validate() {
+  const res = await axios.get(`${API_BASE_URL}/auth/verify`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+
 export async function getShops() {
   const res = await axios.get(`${API_BASE_URL}/shop/all`, {
     withCredentials: true,
@@ -277,6 +284,11 @@ export async function getAllRemindersByVehicleId(vehicleId: string) {
   return res.data;
 }
 
+export async function sendReminder(shopId: string, id: string) {
+  return (await axios.post(`${API_BASE_URL}/send-reminder/${shopId}/${id}`))
+    .data;
+}
+
 export async function getAllRemindersByCustomerId(customerId: string) {
   const res = await axios.get(
     `${API_BASE_URL}/reminder/customer/${customerId}`,
@@ -318,6 +330,15 @@ export async function updatePassword(payload: UpdatePasswordReq) {
     }
   );
   return res.data;
+}
+export async function updateColor(color: string, shopId: string) {
+  return (
+    await axios.post(
+      `${API_BASE_URL}/settings/update-color`,
+      { color, shopId },
+      { withCredentials: true }
+    )
+  ).data;
 }
 export async function updateProfile(payload: UpdateProfileReq) {
   const res = await axios.put(
@@ -470,10 +491,33 @@ export interface DashboardStats {
   quotaUsage: number;
   recentShops: Shop[];
 }
+
+export interface AdminDashboardStats {
+  package: {
+    name: string;
+    tier: string;
+    renewalDate: string | Date;
+  };
+  channels: {
+    whatsapp: { name: string; limit: number; used: number };
+    sms: { name: string; limit: number; used: number };
+    email: { name: string; limit: number; used: number };
+  };
+  stats: {
+    messagesToday: number;
+    totalSales: number;
+    totalProducts: number;
+    totalCustomers: number;
+  };
+  messagesTrend: { date: string | Date; messages: number; sales: number }[];
+  channelDistribution: { name: string; value: number; color: string }[];
+}
 // Auth
 export type LoginRequest = { email: string; password: string };
 export type LoginResponse = {
   message?: string;
+  dashboard?: AdminDashboardStats;
+  super_dashboard?: SuperAdminStats;
   user: {
     id: string;
     name: string;
@@ -507,10 +551,11 @@ export type Shop = {
   settings?: Setting;
 };
 
-type Setting = {
+export type Setting = {
   id?: string | number;
   shop_id: string | number;
   low_stock_notifications: boolean;
+  email_template_color: string;
   default_reminder_channels: {
     email: boolean;
     whatsapp: boolean;
@@ -642,5 +687,3 @@ export type AdminSettings = {
   notificationsEnabled: boolean;
   updatedAt: string;
 };
-
-

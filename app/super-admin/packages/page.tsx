@@ -16,6 +16,7 @@ import PackageSkeleton from "@/components/skeletons/package-skeleton";
 export default function PackagesPage() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [creatingPackage, setCreatingPackage] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email_enabled: false,
@@ -67,6 +68,7 @@ export default function PackagesPage() {
         : 0,
     };
     try {
+      setCreatingPackage(true);
       const data = await createPackage(payload);
       toast.success(data.message || "Package created successfully");
       fetchPackages();
@@ -85,6 +87,8 @@ export default function PackagesPage() {
         toast.error(
           error.response?.data?.message || "Failed to create package"
         );
+    } finally {
+      setCreatingPackage(false);
     }
   };
 
@@ -242,7 +246,9 @@ export default function PackagesPage() {
               )}
             </div>
 
-            <Button type="submit">Create</Button>
+            <Button type="submit" disabled={creatingPackage}>
+              {creatingPackage ? "Creating..." : "Create"}
+            </Button>
           </form>
         </CardContent>
       </Card>

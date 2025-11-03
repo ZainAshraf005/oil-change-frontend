@@ -89,7 +89,7 @@ export default function ShopDetailsPage() {
   useEffect(() => {
     if (!id) return;
     fetchShop();
-  }, [id, fetchShop]);
+  }, [id]);
 
   if (loading) return <DetailsSkeleton />;
 
@@ -103,12 +103,12 @@ export default function ShopDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 cursor-pointer">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/super-admin/shops" prefetch>
+          <div onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
-          </Link>
+          </div>
         </Button>
       </div>
 

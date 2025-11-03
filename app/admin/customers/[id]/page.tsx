@@ -15,6 +15,7 @@ import {
 import {
   type Customer,
   deleteReminder,
+  getAdminDashboardStats,
   getAllRemindersByCustomerId,
   getAllVehiclesByCustomerId,
   getCustomerById,
@@ -35,9 +36,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/auth-store";
+import { useDashboardStore } from "@/stores/dashboard-store";
 
 export default function CustomerDetailsPage() {
   const { id } = useParams();
+  const user = useAuthStore((s) => s.user);
+  const { setData } = useDashboardStore();
   const router = useRouter();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -93,8 +98,14 @@ export default function CustomerDetailsPage() {
     router.push(`${id}/edit`);
   };
 
+  const fetchDashboard = async () => {
+    const res = await getAdminDashboardStats(user?.shop?.id as string);
+    setData(res.data);
+  };
+
   const goToCustomerPage = () => {
     router.push("/admin/customers");
+    fetchDashboard();
   };
 
   // 🟢 Skeleton UI while loading

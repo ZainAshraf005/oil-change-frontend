@@ -24,8 +24,10 @@ import {
   type Product,
   createSale,
   type CreateSaleReq,
+  getAdminDashboardStats,
 } from "@/lib/api";
 import { useAuthStore } from "@/stores/auth-store";
+import { useDashboardStore } from "@/stores/dashboard-store";
 
 interface SalesFormProps {
   shop_id: string | number;
@@ -34,6 +36,7 @@ interface SalesFormProps {
 
 export default function SalesForm({ shop_id, fetchSales }: SalesFormProps) {
   const user = useAuthStore((s) => s.user);
+  const { setData } = useDashboardStore();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,6 +180,11 @@ export default function SalesForm({ shop_id, fetchSales }: SalesFormProps) {
     setProductHighlightedIndex(-1);
   };
 
+  const fetchDashboard = async () => {
+    const res = await getAdminDashboardStats(user?.shop?.id as string);
+    setData(res.data);
+  };
+
   // handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,6 +242,7 @@ export default function SalesForm({ shop_id, fetchSales }: SalesFormProps) {
         toast.error(err.response?.data?.message || "Error recording sale");
     } finally {
       setIsSubmitting(false);
+      fetchDashboard();
     }
   };
 

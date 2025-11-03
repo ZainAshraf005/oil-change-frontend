@@ -87,7 +87,7 @@ export default function VehiclesPage() {
 
   useEffect(() => {
     fetchData();
-  }, [user?.shop?.id]);
+  }, []);
 
   const handleReset = () => {
     setRegistrationNumber("");
@@ -99,7 +99,7 @@ export default function VehiclesPage() {
   };
 
   const handleSave = async () => {
-    const regPattern = /^[A-Z]{2,}-(\d{1,4}|\d{2}-\d{1,4})$/;
+    const regPattern = /^[A-Z]{2,}-\d{1,3}[A-Z]?-?\d{1,4}$/;
     if (!regPattern.test(registrationNumber)) {
       toast.error("Please enter a valid registration number");
       return;
@@ -264,7 +264,9 @@ export default function VehiclesPage() {
                       filteredVehicles.map((vehicle) => (
                         <TableRow
                           onClick={() => router.push(`vehicles/${vehicle.id}`)}
-                          onMouseEnter={() => router.prefetch(`vehicles/${vehicle.id}`)}
+                          onMouseEnter={() =>
+                            router.prefetch(`vehicles/${vehicle.id}`)
+                          }
                           key={vehicle.id}
                           className="hover:bg-muted/50 cursor-pointer transition-colors"
                         >
@@ -315,7 +317,9 @@ export default function VehiclesPage() {
                 filteredVehicles.map((vehicle) => (
                   <Card
                     key={vehicle.id}
-                    onMouseEnter={() => router.prefetch(`vehicles/${vehicle.id}`)}
+                    onMouseEnter={() =>
+                      router.prefetch(`vehicles/${vehicle.id}`)
+                    }
                     className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => router.push(`vehicles/${vehicle.id}`)}
                   >

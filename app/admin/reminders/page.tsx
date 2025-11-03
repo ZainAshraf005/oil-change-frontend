@@ -12,15 +12,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuthStore } from "@/stores/auth-store";
-import { deleteReminder, getAllRemindersByShopId, Reminder } from "@/lib/api";
+import {
+  deleteReminder,
+  getAllRemindersByShopId,
+  Reminder,
+  sendReminder,
+} from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { AxiosError } from "axios";
 
 export default function RemindersPage() {
   const user = useAuthStore((s) => s.user);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingId, setLoadingId] = useState(0);
   const [filter, setFilter] = useState<"TODAY" | "WEEK" | "MONTH" | "ALL">(
     "ALL"
   );
@@ -30,7 +38,6 @@ export default function RemindersPage() {
     try {
       setLoading(true);
       const res = await getAllRemindersByShopId(user!.shop?.id as string);
-      console.log(res.data);
       setReminders(res.data || []);
     } catch {
       toast.error("Failed to fetch reminders");
@@ -41,17 +48,32 @@ export default function RemindersPage() {
 
   const handleDelete = async (id: string | number) => {
     try {
+      setLoadingId(Number(id));
       await deleteReminder(id as string);
       toast.success("Reminder deleted");
       setReminders((prev) => prev.filter((r) => r.id !== id));
     } catch {
       toast.error("Failed to delete reminder");
+    } finally {
+      setLoadingId(0);
     }
   };
 
   useEffect(() => {
     if (user) fetchReminders();
   }, [user]);
+
+  const handleReminderSend = async (id: string) => {
+    try {
+      const data = await sendReminder(user?.shop?.id as string, id);
+      console.log(data);
+      fetchReminders();
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        toast.error(error.response?.data.message || "error calling api");
+      }
+    }
+  };
 
   // Filter logic
   const filteredReminders = useMemo(() => {
@@ -112,116 +134,191 @@ export default function RemindersPage() {
 
       {/* Table */}
       <div className="rounded-lg border">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-5 w-1/5" />
-                <Skeleton className="h-5 w-1/5" />
-                <Skeleton className="h-5 w-1/5" />
-                <Skeleton className="h-5 w-1/5" />
-                <Skeleton className="h-5 w-1/5" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Reg#</TableHead>
-                <TableHead>Whatsapp</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>SMS</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredReminders.length > 0 ? (
-                filteredReminders.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      {new Date(
-                        r.due_date || r.created_at
-                      ).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>{r.owner?.name || "—"}</TableCell>
-                    <TableCell>
-                      {r.vehicle?.registration_number || "—"}
-                    </TableCell>
-                    {r.channelStatuses
-                      ?.filter((z) => z.channel === "WHATSAPP")
-                      .map((s) => (
-                        <TableCell key={s.id}>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              s.status === "SENT"
-                                ? "bg-green-100 text-green-700"
-                                : s.status === "FAILED"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {s.status}
-                          </span>
-                        </TableCell>
-                      ))}
-                    {r.channelStatuses
-                      ?.filter((z) => z.channel === "EMAIL")
-                      .map((s) => (
-                        <TableCell key={s.id}>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              s.status === "SENT"
-                                ? "bg-green-100 text-green-700"
-                                : s.status === "FAILED"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {s.status}
-                          </span>
-                        </TableCell>
-                      ))}
-                    {r.channelStatuses
-                      ?.filter((z) => z.channel === "SMS")
-                      .map((s) => (
-                        <TableCell key={s.id}>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              s.status === "SENT"
-                                ? "bg-green-100 text-green-700"
-                                : s.status === "FAILED"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-yellow-100 text-yellow-700"
-                            }`}
-                          >
-                            {s.status}
-                          </span>
-                        </TableCell>
-                      ))}
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(r.id!)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
-                    No reminders found.
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Reg#</TableHead>
+              <TableHead>Whatsapp</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>SMS</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {loading ? (
+              // Skeleton rows
+              [...Array(4)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-16 bg-muted animate-pulse rounded"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-20 bg-muted animate-pulse rounded"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-4 w-16 bg-muted animate-pulse rounded"></div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="h-4 w-8 mx-auto bg-muted animate-pulse rounded"></div>
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
+              ))
+            ) : filteredReminders.length > 0 ? (
+              filteredReminders.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    {new Date(r.due_date || r.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{r.owner?.name || "—"}</TableCell>
+                  <TableCell>{r.vehicle?.registration_number || "—"}</TableCell>
+
+                  {/* WhatsApp */}
+                  <TableCell>
+                    {r.channelStatuses?.find(
+                      (s) => s.channel === "WHATSAPP"
+                    ) ? (
+                      <div className="relative group inline-block cursor-pointer">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium cursor-pointer ${
+                            r.channelStatuses.find(
+                              (s) => s.channel === "WHATSAPP"
+                            )?.status === "SENT"
+                              ? "bg-green-100 text-green-700"
+                              : r.channelStatuses.find(
+                                  (s) => s.channel === "WHATSAPP"
+                                )?.status === "FAILED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {
+                            r.channelStatuses.find(
+                              (s) => s.channel === "WHATSAPP"
+                            )?.status
+                          }
+                        </span>
+
+                        {/* Tooltip */}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap z-10">
+                          {r.channelStatuses.find(
+                            (s) => s.channel === "WHATSAPP"
+                          )?.error || "No error"}
+                        </div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+
+                  {/* Email */}
+                  <TableCell>
+                    {r.channelStatuses?.find((s) => s.channel === "EMAIL") ? (
+                      <div className="relative group inline-block">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium cursor-pointer ${
+                            r.channelStatuses.find((s) => s.channel === "EMAIL")
+                              ?.status === "SENT"
+                              ? "bg-green-100 text-green-700"
+                              : r.channelStatuses.find(
+                                  (s) => s.channel === "EMAIL"
+                                )?.status === "FAILED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {
+                            r.channelStatuses.find((s) => s.channel === "EMAIL")
+                              ?.status
+                          }
+                        </span>
+
+                        {/* Hover tooltip */}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap z-10">
+                          {r.channelStatuses.find((s) => s.channel === "EMAIL")
+                            ?.error || "No error"}
+                        </div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+
+                  {/* SMS */}
+                  <TableCell>
+                    {r.channelStatuses?.find((s) => s.channel === "SMS") ? (
+                      <div className="relative group inline-block">
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-medium cursor-pointer ${
+                            r.channelStatuses.find((s) => s.channel === "SMS")
+                              ?.status === "SENT"
+                              ? "bg-green-100 text-green-700"
+                              : r.channelStatuses.find(
+                                  (s) => s.channel === "SMS"
+                                )?.status === "FAILED"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {
+                            r.channelStatuses.find((s) => s.channel === "SMS")
+                              ?.status
+                          }
+                        </span>
+
+                        {/* Hover tooltip */}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded-md px-2 py-1 whitespace-nowrap z-10">
+                          {r.channelStatuses.find((s) => s.channel === "SMS")
+                            ?.error || "No error"}
+                        </div>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(r.id!)}
+                    >
+                      {loadingId === r.id ? (
+                        <Spinner />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => handleReminderSend(r.id as string)}
+                      size={"sm"}
+                      className="cursor-pointer"
+                    >
+                      send now
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-4">
+                  No reminders found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </section>
   );

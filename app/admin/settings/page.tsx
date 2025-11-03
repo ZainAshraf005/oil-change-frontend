@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
+  Setting,
+  Shop,
+  updateColor,
   updateNotifications,
   UpdateNotificationsReq,
   updatePassword,
@@ -22,6 +25,7 @@ import { Spinner } from "@/components/ui/spinner";
 export default function AdminSettingsPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.login);
+
   // Password state
   const [password, setPassword] = useState({
     current: "",
@@ -50,6 +54,65 @@ export default function AdminSettingsPage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [notificationLoading, setNotificationLoading] = useState(false);
 
+  // Email Template Preview State
+  const [emailColor, setEmailColor] = useState(
+    user?.shop?.settings?.email_template_color as string
+  );
+
+  // Dummy data for email preview
+  const dummyData = {
+    customerName: "Ali Ahmed",
+    regNo: "ABC-1234",
+    oilChangeDate: "10-Oct-2025",
+    mileage: "45,000 km",
+    currentDate: "02-Nov-2025",
+    shopName: user?.shop?.name,
+  };
+
+  const generateEmailTemplatePreview = (color: string) => {
+    return `
+    <div style="font-family: Arial, sans-serif; padding: 20px;">
+      <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #ddd;">
+        <div style="background: ${color}; color: #fff; padding: 16px; text-align: center; font-size: 20px; font-weight: bold;">
+          ${dummyData.shopName}
+        </div>
+        <div style="padding: 20px; color: #333; line-height: 1.6;">
+          <p>Dear <b>${dummyData.customerName}</b>,</p>
+          <p>
+            You had an engine oil change for your car <b>${
+              dummyData.regNo
+            }</b> on
+            <b>${dummyData.oilChangeDate}</b> when the mileage was <b>${
+      dummyData.mileage
+    }</b>.
+          </p>
+          <p>
+            It has now been <b>${dummyData.currentDate}</b> since that service.
+            Please check whether your vehicle is due for its next oil change to ensure optimal performance.
+          </p>
+          <p>Regards,<br/><b>${dummyData.shopName}</b></p>
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />
+          <p dir="rtl" style="font-family: 'Noto Nastaliq Urdu', serif; color: #222; line-height:normal;">
+            محترم <b>${dummyData.customerName}</b>،<br/>
+            آپ کی گاڑی <b>${dummyData.regNo}</b> کا انجن آئل <b>${
+      dummyData.oilChangeDate
+    }</b> کو بدلا گیا تھا، اُس وقت مائلیج <b>${dummyData.mileage}</b> تھی۔<br/>
+            اب اس خدمت کو <b>${dummyData.currentDate}</b> گزر چکے ہیں۔<br/>
+            براہِ کرم اپنی گاڑی کا آئل چیک کر لیں تاکہ وقت پر آئل چینج کر کے گاڑی کی بہترین کارکردگی برقرار رکھی جا سکے۔<br/>
+            نیک تمنائیں،<br/><b>${dummyData.shopName}</b>
+          </p>
+        </div>
+        <div style="background: ${color}; color: #fff; text-align: center; padding: 10px; font-size: 12px;">
+          © ${new Date().getFullYear()} ${
+      dummyData.shopName
+    } | All Rights Reserved
+        </div>
+      </div>
+    </div>
+    `;
+  };
+
+  // --- Logic Functions ---
   const isPasswordChanged = () => {
     return (
       password.current.length > 0 ||
@@ -99,14 +162,29 @@ export default function AdminSettingsPage() {
       setPasswordLoading(true);
       const data = await updatePassword(payload_data);
       if (data.success) {
-        toast.success(data.message || "password updated successfully");
+        toast.success(data.message || "Password updated successfully");
         setPassword({ current: "", new: "", confirm: "" });
       }
     } catch (error) {
       if (error instanceof AxiosError)
-        toast.error(error.response?.data.message || "error updating password");
+        toast.error(error.response?.data.message || "Error updating password");
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleColorSave = async () => {
+    const shopId = user?.shop?.id as string;
+    try {
+      const data = await updateColor(emailColor, shopId);
+      if (data.success) {
+        setUser(data.user);
+      }
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        toast.error(error.response?.data.message || "error changing color");
+        setEmailColor(user?.shop?.settings?.email_template_color as string);
+      }
     }
   };
 
@@ -120,7 +198,6 @@ export default function AdminSettingsPage() {
     try {
       setProfileLoading(true);
       const data = await updateProfile(profilePayload);
-      console.log(data);
       if (data.success) {
         setUser(data.user);
         setBusinessProfile({
@@ -128,11 +205,11 @@ export default function AdminSettingsPage() {
           replyPhone: data.user.phone,
           shopName: data.user.shop.name,
         });
-        toast.success(data.message || "profile updated");
+        toast.success(data.message || "Profile updated");
       }
     } catch (error) {
       if (error instanceof AxiosError)
-        toast.error(error.response?.data.message || "error updating profile");
+        toast.error(error.response?.data.message || "Error updating profile");
     } finally {
       setProfileLoading(false);
     }
@@ -147,7 +224,6 @@ export default function AdminSettingsPage() {
     };
     try {
       setNotificationLoading(true);
-      // console.log(payload)
       const data = await updateNotifications(payload, user?.shop?.id as string);
       if (data.success) {
         setUser(data.user);
@@ -159,12 +235,12 @@ export default function AdminSettingsPage() {
             sms: data.settings.default_reminder_channels.sms,
           },
         });
-        toast.success(data.message || "notifications updated successfully");
+        toast.success(data.message || "Notifications updated successfully");
       }
     } catch (error) {
       if (error instanceof AxiosError)
         toast.error(
-          error.response?.data.message || "error updating notifications"
+          error.response?.data.message || "Error updating notifications"
         );
     } finally {
       setNotificationLoading(false);
@@ -174,17 +250,15 @@ export default function AdminSettingsPage() {
   const handleChannelToggle = (channel: "whatsapp" | "email" | "sms") => {
     const updatedChannels = { ...notifications.enabledChannels };
     const enabledCount = Object.values(updatedChannels).filter(Boolean).length;
-
-    // Prevent disabling if it's the last enabled channel
     if (updatedChannels[channel] && enabledCount === 1) {
       alert("At least one notification channel must be enabled");
       return;
     }
-
     updatedChannels[channel] = !updatedChannels[channel];
     setNotifications({ ...notifications, enabledChannels: updatedChannels });
   };
 
+  // --- Render ---
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
@@ -308,7 +382,7 @@ export default function AdminSettingsPage() {
           </Card>
 
           {/* Notification Settings */}
-          <Card>
+          <Card className="col-span-2">
             <CardHeader>
               <CardTitle>Notification Settings</CardTitle>
             </CardHeader>
@@ -379,6 +453,55 @@ export default function AdminSettingsPage() {
               >
                 {notificationLoading ? <Spinner /> : "Update Notifications"}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Email Template Settings */}
+          <Card className="col-span-2 relative">
+            {emailColor !== user?.shop?.settings?.email_template_color && (
+              <Button
+                variant={"outline"}
+                onClick={handleColorSave}
+                className="absolute top-3 right-3 cursor-pointer"
+              >
+                save changes
+              </Button>
+            )}
+            <CardHeader>
+              <CardTitle>Email Template Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <Label>Email Theme Color</Label>
+                <div className="flex items-center gap-3">
+                  {["#0d6efd", "#198754", "#fd7e14", "#6c757d"].map((color) => (
+                    <button
+                      key={color}
+                      className="w-8 h-8 rounded-full border-2"
+                      style={{
+                        backgroundColor: color,
+                        borderColor: color === emailColor ? "black" : "#ccc",
+                      }}
+                      onClick={() => setEmailColor(color)}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={emailColor}
+                    onChange={(e) => setEmailColor(e.target.value)}
+                    className="w-10 h-10 p-1 border rounded-md"
+                  />
+                </div>
+              </div>
+
+              <div className=" overflow-hidden">
+                <div
+                  className="p-6"
+                  dangerouslySetInnerHTML={{
+                    __html: generateEmailTemplatePreview(emailColor),
+                  }}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>

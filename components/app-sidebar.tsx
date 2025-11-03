@@ -24,6 +24,7 @@ import Image from "next/image";
 import oilLogo from "@/public/on-time-oil.png";
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDashboardStore } from "@/stores/dashboard-store";
 
 type NavItem = { href: string; label: string };
 
@@ -56,10 +57,16 @@ export function AppShell({
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { logout } = useAuthStore();
+  const { clearData } = useDashboardStore();
   const nav = role === "SUPERADMIN" ? superAdminNav : adminNav;
 
   // 🧠 Check if admin’s shop is suspended
   const isSuspended = role === "ADMIN" && user?.shop?.status === "SUSPENDED";
+
+  const handleLogout = () => {
+    logout();
+    clearData();
+  };
 
   return (
     <SidebarProvider>
@@ -123,7 +130,7 @@ export function AppShell({
               size="sm"
               variant="secondary"
               className="w-full cursor-pointer"
-              onClick={logout}
+              onClick={handleLogout}
             >
               Logout
             </Button>
